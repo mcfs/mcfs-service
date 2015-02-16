@@ -7,9 +7,11 @@ Gem::Specification.new do |gem|
   gem.description = 'mcfs description'
   gem.authors     = ["Jinesh Jayakumar"]
   gem.email       = 'jineshkj at gmail dot com'
-  gem.files       = ['lib/mcfs.rb']
+  gem.files       = ['bin/mcfs', 'lib/mcfs.rb']
+  gem.executables = ['mcfs']
   gem.homepage    = 'https://github.com/jineshkj/mcfs'
   gem.license     = 'LGPLv3'
 
   gem.add_runtime_dependency 'dropbox-sdk', '~> 1.6', '= 1.6.4'
+  gem.add_runtime_dependency 'rfusefs', '~> 1.0', '= 1.0.3'
 end
