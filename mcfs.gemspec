@@ -1,7 +1,7 @@
 
 Gem::Specification.new do |gem|
   gem.name        = 'mcfs'
-  gem.version     = '0.0.1'
+  gem.version     = '0.0.2'
   gem.date        = '2015-02-08'
   gem.summary     = 'mcfs summary'
   gem.description = 'mcfs description'
