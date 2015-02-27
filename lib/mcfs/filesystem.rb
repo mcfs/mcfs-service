@@ -64,6 +64,7 @@ module McFS
           @stores[idx % @stores.size].write_to(path, idx, buf)
           buf = ''
           idx += 1
+          cnt = 0
         end
       end
       
