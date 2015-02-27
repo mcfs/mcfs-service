@@ -9,8 +9,12 @@ module McFS
     
     def initialize
       @stores = []
-      dbcfg = YAML.load_file(ENV['HOME'] + '/.mcfs/dropbox.yml')
-      @stores << Stores::Dropbox.new(dbcfg.access_token)
+      dbcfg1 = YAML.load_file(ENV['HOME'] + '/.mcfs/dropbox1.yml')
+      dbcfg2 = YAML.load_file(ENV['HOME'] + '/.mcfs/dropbox2.yml')
+      
+      @stores << Stores::Dropbox.new(dbcfg1.access_token)
+      @stores << Stores::Dropbox.new(dbcfg2.access_token)
+      
     end
 
     def contents(path)
@@ -30,6 +34,7 @@ module McFS
     end
     
     def read_file(path)
+      puts "Read File: #{path}"
       contents = {}
       
       @stores.each do |store|

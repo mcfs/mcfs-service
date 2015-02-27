@@ -31,6 +31,8 @@ module Stores
     end
     
     def read_file(path)
+      puts "Read: #{path}"
+      
       filenames = @client.metadata(File.dirname('/McFS' + path))['contents'].map do |e|
         e['path'] if File.basename(e['path'], '.*') == File.basename('/McFS' + path)
       end
