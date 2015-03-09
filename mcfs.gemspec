@@ -14,4 +14,5 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency 'dropbox-sdk', '~> 1.6', '= 1.6.4'
   gem.add_runtime_dependency 'rfusefs', '~> 1.0', '= 1.0.3'
+  gem.add_runtime_dependency 'celluloid', '~> 0.16', '= 0.16.0'
 end

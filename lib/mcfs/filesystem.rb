@@ -19,9 +19,16 @@ module McFS
 
     def contents(path)
       files = []
+      
+      futures = []
       @stores.each do |store|
-        files += store.contents(path)
+        futures << store.future.contents(path)
       end
+      
+      futures.each do |future|
+        files += future.value
+      end
+      
       files.uniq
     end
 
@@ -37,8 +44,13 @@ module McFS
       puts "Read File: #{path}"
       contents = {}
       
+      futures = []
       @stores.each do |store|
-        contents.merge! store.read_file(path)
+        futures << store.future.read_file(path)
+      end
+      
+      futures.each do |future|
+        contents.merge! future.value
       end
       
       data = ''

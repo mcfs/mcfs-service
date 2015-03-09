@@ -1,3 +1,4 @@
+require 'celluloid'
 require 'dropbox_sdk'
 
 class DropboxConfig
@@ -16,6 +17,8 @@ module Stores
 
   class Dropbox
     
+    include Celluloid
+    
     def initialize(token)
       @client = DropboxClient.new(token)
     end
@@ -23,11 +26,17 @@ module Stores
     # list contents under directory
     def contents(dir)
       puts "Path: #{dir}"
+      
+      contents = []
+      
       @client.metadata('/McFS' + dir)['contents'].map do |entry|
         # entry['path'].split('/')[-1]
         # TODO: File.basename may have issues with path separator
-        File.basename(entry['path'], '.*')
+        puts "Pass 1 #{entry['path']}"
+        contents << File.basename(entry['path'], '.*')
       end
+      puts "Pass 2"
+      contents
     end
     
     def read_file(path)
