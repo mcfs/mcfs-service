@@ -17,30 +17,19 @@ The above command would generate the mcfs gem file. Note the generated mcfs gem 
 	$ sudo gem install ./<gemfile>
 
 
-Follow instructions given https://www.dropbox.com/developers/core/start/ruby to register two distinct Dropbox apps in your Dropbox app console. Follow further instructions given in the page to generate two separate authentication tokens to connect to the 2 separate dropbox accounts. Generate the following two files that contains the auth tokens required to access two dropbox accounts.
+Follow instructions given https://www.dropbox.com/developers/core/start/ruby to register two distinct Dropbox apps in your Dropbox app console. Follow further instructions given in the page to generate two separate authentication tokens to connect to the 2 separate dropbox accounts. Generate the following config file that contains the auth tokens required to access two dropbox accounts.
 
-$HOME/.mcfs/dropbox1.yml:
+$HOME/.mcfs/config.yml:
 
 ```yaml
---- !ruby/object:DropboxConfig
-app_key: aaaaa
-app_secret: aaaaa
-access_token: token1
-user_id: aaaaa
+---
+accounts:
+- token: token1
+- token: token2
 ```
-
-$HOME/.mcfs/dropbox2.yml:
-```yaml
---- !ruby/object:DropboxConfig
-app_key: aaaaa
-app_secret: aaaaa
-access_token: token2
-user_id: aaaaa
-```
-
-Create an empty top-level directory named 'McFS' under both the dropbox accounts.
 
 On Ubuntu machine, now mcfs command to mount the online accounts to an empty directory:
 
 	$ mcfs <dir>
 
+Wait for the client to download metadata of Dropbox contents.

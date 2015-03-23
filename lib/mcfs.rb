@@ -1,14 +1,27 @@
 
+require 'logger'
+
+module McFS
+  MCFS_DIR  = '.mcfs'
+  MCFS_DIR_PATH = File.join(Dir.home, MCFS_DIR)
+  MCFS_LOG_PATH = File.join(MCFS_DIR_PATH, 'mcfs.log')
+  
+  Dir.mkdir(MCFS_DIR_PATH, 0700) unless Dir.exists?(MCFS_DIR_PATH)
+  # Log = Logger.new(MCFS_LOG_PATH)
+  Log = Logger.new(STDOUT)
+end
+
 #TODO: need to use Logger for logging
 
-require 'rfusefs'
+require 'fusefs'
 
+require_relative 'mcfs/config'
 require_relative 'mcfs/filesystem'
 require_relative 'mcfs/service'
 
-Thread.new do
-  McFS::Service.run!(:port=>0)
-end
+# Thread.new do
+#   McFS::Service.run!(:port=>0)
+# end
 
 FuseFS.main do |opts|
   McFS::Filesystem.new

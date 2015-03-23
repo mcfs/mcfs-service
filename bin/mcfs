@@ -2,3 +2,6 @@
 
 require 'mcfs'
 
+#TODO: ! parse command line
+#      ! start the client
+#      
