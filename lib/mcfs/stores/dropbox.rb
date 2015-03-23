@@ -93,8 +93,7 @@ module Stores
     end
     
     def read_file(path)
-      data, metadata = @client.get_file_and_metadata(file)
-      data
+      @client.get_file(path)
     end
     
     def write_to(path, str)
