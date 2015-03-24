@@ -16,8 +16,10 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'dropbox-sdk', '~> 1.6', '= 1.6.4'
   gem.add_runtime_dependency 'rfusefs', '~> 1.0', '= 1.0.3'
   gem.add_runtime_dependency 'celluloid', '~> 0.16', '= 0.16.0'
-  gem.add_runtime_dependency 'sinatra', '~> 1.4', '= 1.4.5'
-
+  gem.add_runtime_dependency 'reel', '~> 0.5', '= 0.5.0'
+  gem.add_runtime_dependency 'webmachine', '~> 1.4', '= 1.4.0'
+  gem.add_runtime_dependency 'rpam-ruby19', '~> 1.2', '= 1.2.1'
+  
   gem.files =
   [
     'bin/mcfs',
@@ -25,8 +27,9 @@ Gem::Specification.new do |gem|
     'lib/mcfs/version.rb',
     'lib/mcfs/config.rb',
     'lib/mcfs/filesystem.rb',
-    'lib/mcfs/service.rb',
-    'lib/mcfs/stores/dropbox.rb'
+    'lib/mcfs/stores/dropbox.rb',
+    'lib/mcfs/api/rest/service.rb',
+    'lib/mcfs/api/rest/resources/login.rb'
   ]
   gem.executables = [ 'mcfs' ]
 end

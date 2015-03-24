@@ -17,11 +17,11 @@ require 'fusefs'
 
 require_relative 'mcfs/config'
 require_relative 'mcfs/filesystem'
-require_relative 'mcfs/service'
+require_relative 'mcfs/api/rest/service'
 
-# Thread.new do
-#   McFS::Service.run!(:port=>0)
-# end
+Thread.new do
+  McFS::RESTService.run
+end
 
 FuseFS.main do |opts|
   McFS::Filesystem.new
