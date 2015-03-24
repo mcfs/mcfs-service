@@ -5,7 +5,7 @@ Multi-cloud File System
 
 Install Ubuntu 14.10 and run the following commands to install necessary tools:
 
-	$ sudo apt-get install ruby ruby-dev libfuse-dev git
+	$ sudo apt-get install ruby ruby-dev libfuse-dev libpam-dev git
 	$ sudo gem install rake
 
 Next clone the mcfs repository and change to the checkout out mcfs directory. Run the following command to build the mcfs gem:
