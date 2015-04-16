@@ -14,15 +14,26 @@ module McFS
       
       #TODO: move config loading to CLI layer
       Config['accounts'].each do |ac|
-        store = Stores::Dropbox.new(ac['token'])
-        mkdir('/' + store.identity, store)
-        
-        # store = Stores::Dropbox.new(ac['token'])
-        # @stores[store.identity] = store
+        add_account ac
       end
       
     end
 
+    def accounts
+      # Accessing @subdirs from FuseFS::MetaDir
+      @subdirs.collect do |dir,store|
+        store.info.merge!({ 'mount' => dir })
+      end
+    end
+    
+    def add_account(ac)
+      store = Stores::Dropbox.new(ac['token'])
+      mkdir('/' + store.identity, store)
+      
+      # store = Stores::Dropbox.new(ac['token'])
+      # @stores[store.identity] = store
+    end
+    
     # def contents(dir)
     #   if dir == '/'
     #     @stores.keys

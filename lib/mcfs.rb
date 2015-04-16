@@ -24,5 +24,5 @@ Thread.new do
 end
 
 FuseFS.main do |opts|
-  McFS::Filesystem.new
+  $filesystem = McFS::Filesystem.new
 end
