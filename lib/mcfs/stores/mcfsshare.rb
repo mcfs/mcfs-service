@@ -75,6 +75,8 @@ module Stores
     # end
 
     def file?(path)
+      Log.info "[McFS]: file? #{path}..."
+      
       # For the time being, we will accept the path as a file
       # if any of the stores have it as a file
       futures = {}
@@ -91,8 +93,9 @@ module Stores
         end
       end
       
-      ffutures.detect {|f| f.value }
+      ffutures.each {|f| return true if f.value == true }
       
+      false
       # futures = []
       # @fs.stores.each do |store|
       #   futures << store.future.file?('/McFS')
@@ -109,11 +112,11 @@ module Stores
 
     # Everything is writable in Dropbox
     def can_write?(path)
-      true
+      File.dirname(path) == '/'
     end
 
     def executable?(path)
-      false
+      true
     end
 
     # Size of a file in bytes
@@ -167,7 +170,7 @@ module Stores
     end
     
     def write_to(path, str)
-      Log.info "[McFS]: write #{path}..."
+      Log.info "[McFS]: write #{path} #{str.size}..."
       
       delete(path)
       
@@ -243,10 +246,10 @@ module Stores
       false
     end
     
-    def rmdir(path)
-      #FIXME
-      nil
-    end
+    # def rmdir(path)
+    #   #FIXME
+    #   nil
+    # end
     
   end # McFSShare
 end # Stores

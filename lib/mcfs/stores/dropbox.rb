@@ -94,6 +94,8 @@ module Stores
     # end
 
     def contents(dir)
+      dir = dir.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: ls #{dir}..."
       
       stop_timer
@@ -120,6 +122,8 @@ module Stores
     # end
 
     def directory?(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: dir? #{path}..."
       
       stop_timer
@@ -133,9 +137,13 @@ module Stores
         parent = File.dirname(path)
         pmeta = metadata_for_dir(parent)
         
-        pmeta['contents'].detect do |ent|
-          ent['path'] == path and ent['is_dir']
+        pmeta['contents'].each do |ent|
+          if ent['path'] == path and ent['is_dir'] == true
+            return true
+          end
         end
+        
+        return false
       ensure
         reset_timer
       end
@@ -156,6 +164,8 @@ module Stores
     # end
 
     def file?(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: file? #{path}..."
       
       stop_timer
@@ -168,10 +178,16 @@ module Stores
         # entry
         parent = File.dirname(path)
         pmeta = metadata_for_dir(parent)
+        #
+        # pp pmeta
         
-        pmeta['contents'].detect do |ent|
-          ent['path'] == path and not ent['is_dir']
+        pmeta['contents'].each do |ent|
+          if ent['path'] == path and ent['is_dir'] == false
+            return true
+          end
         end
+        
+        return false
       ensure
         reset_timer
       end
@@ -183,12 +199,16 @@ module Stores
     end
 
     def executable?(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: exec? #{path}..."
       directory? path
     end
 
     # Size of a file in bytes
     def size(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: size? #{path}..."
       
       stop_timer
@@ -201,8 +221,11 @@ module Stores
       
         # meta = @metadata[File.dirname(path)]['contents'].find {|e| e['path'] == path }
         # meta['bytes']
-        meta = pmeta['contents'].find {|e| e['path'] == path }
-        meta['bytes']
+        if meta = pmeta['contents'].find {|e| e['path'] == path }
+          meta['bytes']
+        else
+          0
+        end
       ensure
         reset_timer
       end
@@ -210,6 +233,8 @@ module Stores
     end
     
     def read_file(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: read #{path}..."
       
       stop_timer
@@ -221,11 +246,13 @@ module Stores
         parent = File.dirname(path)
         pmeta = metadata_for_dir(parent)
         
-        if ometa = pmeta['contents'].find {|e| e['path'] == path }
-          ometa.merge!(metadata)
-        else
-          pmeta['contents'] << metadata
-        end
+        pmeta['contents'].delete_if {|e| e['path'] == metadata['path']}
+        pmeta['contents'] << metadata
+        # if ometa = pmeta['contents'].find {|e| e['path'] == path }
+        #   ometa.merge!(metadata)
+        # else
+        #   pmeta['contents'] << metadata
+        # end
         
       ensure
         reset_timer
@@ -235,6 +262,8 @@ module Stores
     end
     
     def write_to(path, str)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: write #{path}..."
       
       stop_timer
@@ -248,7 +277,6 @@ module Stores
         
         pmeta['contents'].delete_if {|e| e['path'] == metadata['path']}
         pmeta['contents'] << metadata
-        
         # if ometa = pmeta['contents'].find {|e| e['path'] == metadata['path'] }
         #   ometa.merge!(metadata)
         # else
@@ -260,10 +288,14 @@ module Stores
     end
     
     def can_delete?(path)
-      true
+      path = path.sub(/\/+$/,'')
+      
+      file? path
     end
     
     def delete(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: rm #{path}..."
       
       stop_timer
@@ -286,6 +318,8 @@ module Stores
     end
     
     def mkdir(path)
+      path = path.sub(/\/+$/,'')
+      
       Log.info "[#{user_identity}]: mkdir #{path}..."
       
       stop_timer
