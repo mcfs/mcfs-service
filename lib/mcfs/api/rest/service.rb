@@ -10,7 +10,7 @@ require_relative 'resources/accounts'
 module McFS
   RESTService = Webmachine::Application.new do |app|
     app.routes do
-      add ['login'], McFS::RESTResources::LoginResource
+      #add ['login'], McFS::RESTResources::LoginResource
       add ['accounts'], McFS::RESTResources::AccountsResource
     end
       

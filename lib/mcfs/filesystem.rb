@@ -1,6 +1,7 @@
 
 require 'yaml'
 require 'pathname'
+require 'net/http'
 
 require_relative 'stores/dropbox'
 
@@ -12,9 +13,32 @@ module McFS
       super
       @stores = {}
       
-      #TODO: move config loading to CLI layer
-      Config['accounts'].each do |ac|
-        add_account ac
+      cfgfile = File.join(MCFS_DIR_PATH,'config.yml')
+      if File.exists? cfgfile
+        # Load an existing config is existing (for master node)
+        Psych.load_file(cfgfile)['accounts'].each do |ac|
+          add_account ac
+        end
+      else
+        # On slaves we currently do frequent polling to update
+        # config updates until proper push notification mechanisms
+        # are figured out.
+        Thread.new do
+          loop do
+            sleep 1
+            
+            accounts = YAML.load(Net::HTTP.get('10.0.2.2', '/accounts', 3000))
+            
+            accounts.each do |ac|
+              unless @subdirs.detect {|dir,store| ac['uid'] == store.info['uid'] }
+                puts "New account: #{ac}"
+                add_account ac
+              end
+            end
+            
+          end
+        end
+        
       end
       
     end

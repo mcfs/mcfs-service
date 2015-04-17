@@ -21,6 +21,8 @@ module Stores
     include Celluloid
     
     def initialize(token)
+      @token = token
+      
       @client = DropboxClient.new(token)
       
       Log.info 'Fetching Dropbox account information...'
@@ -28,7 +30,7 @@ module Stores
       
       Log.info "Dropbox user is identified as #{user_identity}"
       
-      mkdir '/McFS'
+      mkdir '/McFS' unless directory? '/McFS'
       
       # @metadata = {}
       # download_metadata '/'
@@ -48,7 +50,8 @@ module Stores
         'uid' => @account_info['uid'],
         'name' => @account_info['display_name'],
         'capacity' => @account_info['quota_info']['quota'],
-        'used' => @account_info['quota_info']['normal']
+        'used' => @account_info['quota_info']['normal'],
+        'token' => @token
       }
     end
     
