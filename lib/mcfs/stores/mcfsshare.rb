@@ -13,22 +13,22 @@ module Stores
     
     def contents(dir)
       Log.info "[McFS]: ls #{dir}..."
-
-      files = []
-
+      
       futures = []
+      
       @fs.stores.each do |store|
         futures << store.future.contents('/McFS' + dir)
       end
-
+      
+      files = []
+      
       futures.each do |future|
         future.value.each do |ent|
           files << File.basename(ent, '.*')
         end
-        
       end
-
-      files.uniq!
+      
+      files.uniq
     end
     
     def info
@@ -43,7 +43,21 @@ module Stores
     end
     
     def directory?(path)
-      false
+      path == '/'
+
+      # futures = []
+      # @fs.stores.each do |store|
+      #   futures << store.future.directory?('/McFS')
+      # end
+      #
+      # are_dirs = []
+      #
+      # futures.each do |future|
+      #   are_dirs << future.value
+      # end
+      #
+      # are_dirs.compact! == [true]
+      
     end
 
 
@@ -61,7 +75,36 @@ module Stores
     # end
 
     def file?(path)
-      File.dirname(path) == '/'
+      # For the time being, we will accept the path as a file
+      # if any of the stores have it as a file
+      futures = {}
+      @fs.stores.each do |store|
+        futures[store.future.contents('/McFS')] = store
+      end
+      
+      ffutures = []
+      futures.each do |future, store|
+        future.value.each do |ent|
+          if File.basename(ent, '.*') == File.basename('/McFS' + path)
+            ffutures << store.future.file?('/McFS/' + ent)
+          end
+        end
+      end
+      
+      ffutures.detect {|f| f.value }
+      
+      # futures = []
+      # @fs.stores.each do |store|
+      #   futures << store.future.file?('/McFS')
+      # end
+      #
+      # are_files = []
+      #
+      # futures.each do |future|
+      #   are_files << future.value
+      # end
+      #
+      # are_files.compact! == [true]
     end
 
     # Everything is writable in Dropbox
@@ -73,11 +116,29 @@ module Stores
       false
     end
 
-    # # Size of a file in bytes
-    # def size(path)
-    #   Log.info "[McFS]: size? #{path}..."
-    #
-    # end
+    # Size of a file in bytes
+    def size(path)
+      Log.info "[McFS]: size #{path}..."
+      
+      futures = {}
+      @fs.stores.each do |store|
+        futures[store.future.contents('/McFS')] = store
+      end
+      
+      sizes = {}
+      futures.each do |future, store|
+        future.value.each do |ent|
+          if File.basename(ent, '.*') == File.basename('/McFS' + path)
+            index = File.extname(ent)[1..-1].to_i
+            sizes[index] = store.future.size('/McFS/' + ent)
+          end
+        end
+      end
+      
+      total_size = 0
+      sizes.each_value {|size| total_size += size.value }
+      total_size
+    end
     
     def read_file(path)
       Log.info "[McFS]: read #{path}..."

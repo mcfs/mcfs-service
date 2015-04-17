@@ -20,6 +20,8 @@ module Stores
     
     include Celluloid
     
+    INACTIVITY_TIMEOUT = 5
+    
     def initialize(token)
       @token = token
       
@@ -30,10 +32,27 @@ module Stores
       
       Log.info "Dropbox user is identified as #{user_identity}"
       
+      # { dir => metadata } temporal cache: cleared during every
+      # INACTIVITY_TIMEOUT seconds. Better method is to timestamp
+      # each entry and check for each access.
+      @metadata = {}
+
       mkdir '/McFS' unless directory? '/McFS'
       
-      # @metadata = {}
-      # download_metadata '/'
+    end
+    
+    def stop_timer
+      if @timer
+        @timer.cancel
+        @timer = nil
+      end
+    end
+    
+    def reset_timer
+      if @timer
+        @timer.cancel
+      end
+      @timer = every(INACTIVITY_TIMEOUT) { @metadata.clear }
     end
     
     def user_identity
@@ -77,11 +96,23 @@ module Stores
     def contents(dir)
       Log.info "[#{user_identity}]: ls #{dir}..."
       
-      # TODO: File.basename may have issues with path separator
-      # FIXME: need to handle the case when metadata returns nil.
-      @client.metadata(dir)['contents'].collect do |ent|
-        File.basename(ent['path'])
+      stop_timer
+      
+      begin
+        @metadata[dir] = @client.metadata(dir) unless @metadata.has_key?(dir)
+        @metadata[dir]['contents'].collect {|e| File.basename(e['path']) }
+      ensure
+        reset_timer
       end
+    end
+
+    def metadata_has_dir?(dir)
+      @metadata.has_key?(dir)
+    end
+    
+    def metadata_for_dir(dir)
+      @metadata[dir] = @client.metadata(dir) unless metadata_has_dir?(dir)
+      @metadata[dir]
     end
     
     # def directory?(path)
@@ -91,11 +122,24 @@ module Stores
     def directory?(path)
       Log.info "[#{user_identity}]: dir? #{path}..."
       
+      stop_timer
+      
       begin
-        @client.metadata(path)['is_dir']
-      rescue DropboxError => e
-        false
+        # Return true if we have direct metadata in cache
+        return true if metadata_has_dir?(path)
+        
+        # Lookup parent's metadata to find the type of
+        # entry
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+        
+        pmeta['contents'].detect do |ent|
+          ent['path'] == path and ent['is_dir']
+        end
+      ensure
+        reset_timer
       end
+      
     end
 
     def can_mkdir?(path)
@@ -114,11 +158,22 @@ module Stores
     def file?(path)
       Log.info "[#{user_identity}]: file? #{path}..."
       
+      stop_timer
+      
       begin
-        meta = @client.metadata(File.dirname(path))
-        meta['contents'].detect {|e| e['path'] == path }
-      rescue DropboxError => e
-        false
+        # Return false if we have direct metadata in cache
+        return false if metadata_has_dir?(path)
+        
+        # Lookup parent's metadata to find the type of
+        # entry
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+        
+        pmeta['contents'].detect do |ent|
+          ent['path'] == path and not ent['is_dir']
+        end
+      ensure
+        reset_timer
       end
     end
 
@@ -129,38 +184,76 @@ module Stores
 
     def executable?(path)
       Log.info "[#{user_identity}]: exec? #{path}..."
-      # Only directories have execute permission
-      # @metadata.has_key?(path)
       directory? path
     end
 
     # Size of a file in bytes
     def size(path)
       Log.info "[#{user_identity}]: size? #{path}..."
-      # meta = @metadata[File.dirname(path)]['contents'].find {|e| e['path'] == path }
-      # meta['bytes']
-      meta = @client.metadata(File.dirname(path))['contents'].find {|e| e['path'] == path }
-      meta['bytes']
+      
+      stop_timer
+      
+      begin
+        # Lookup parent's metadata to find the type of
+        # entry
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+      
+        # meta = @metadata[File.dirname(path)]['contents'].find {|e| e['path'] == path }
+        # meta['bytes']
+        meta = pmeta['contents'].find {|e| e['path'] == path }
+        meta['bytes']
+      ensure
+        reset_timer
+      end
+      
     end
     
     def read_file(path)
       Log.info "[#{user_identity}]: read #{path}..."
-      @client.get_file(path)
+      
+      stop_timer
+      
+      begin
+        data, metadata = @client.get_file_and_metadata(path)
+        
+        # Lookup parent's metadata to update metadata of this file
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+        
+        if ometa = pmeta['contents'].find {|e| e['path'] == path }
+          ometa.merge!(metadata)
+        else
+          pmeta['contents'] << metadata
+        end
+        
+      ensure
+        reset_timer
+      end
+      
+      data
     end
     
     def write_to(path, str)
       Log.info "[#{user_identity}]: write #{path}..."
       
-      @client.put_file(path, str, true)
-      # meta = @client.put_file(path, str, true)
-      #
-      # # Update metadata
-      # dir  = @metadata[File.dirname(path)]['contents']
-      # if orig = dir.find {|e| e['path'] == path }
-      #   orig.merge!(meta)
-      # else
-      #   dir << meta
-      # end
+      stop_timer
+      
+      begin
+        metadata = @client.put_file(path, str, true)
+        
+        # Lookup parent's metadata to update file's metadata
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+      
+        if ometa = pmeta['contents'].find {|e| e['path'] == path }
+          ometa.merge!(metadata)
+        else
+          pmeta['contents'] << metadata
+        end
+      ensure
+        reset_timer
+      end
     end
     
     def can_delete?(path)
@@ -170,9 +263,21 @@ module Stores
     def delete(path)
       Log.info "[#{user_identity}]: rm #{path}..."
       
-      # meta = @client.file_delete(path)
-      # @metadata[File.dirname(meta['path'])]['contents'].delete_if {|e| e['path'] == meta['path']}
-      @client.file_delete(path)
+      stop_timer
+      
+      begin
+        metadata = @client.file_delete(path)
+        
+        # Lookup parent's metadata to delete file's metadata
+        parent = File.dirname(path)
+        pmeta = metadata_for_dir(parent)
+        
+        pmeta['contents'].delete_if {|e| e['path'] == metadata['path']}
+        
+        p pmeta
+      ensure
+        reset_timer
+      end
     end
     
     def can_mkdir?(path)
@@ -182,8 +287,13 @@ module Stores
     def mkdir(path)
       Log.info "[#{user_identity}]: mkdir #{path}..."
       
-      # @metadata[path] = @client.file_create_folder(path)
-      @client.file_create_folder(path)
+      stop_timer
+      
+      begin
+        @metadata[path] = @client.file_create_folder(path)
+      ensure
+        reset_timer
+      end
     end
     
     def can_rmdir?(path)

@@ -15,7 +15,7 @@ module McFS
       # @stores = {}
       
       cfgfile = File.join(MCFS_DIR_PATH,'config.yml')
-      if File.exists? cfgfile
+      if File.exists?(cfgfile)
         # Load an existing config is existing (for master node)
         Psych.load_file(cfgfile)['accounts'].each do |ac|
           add_account ac
@@ -26,7 +26,7 @@ module McFS
         # are figured out.
         Thread.new do
           loop do
-            sleep 1
+            sleep 2
             
             accs = YAML.load(Net::HTTP.get('10.0.2.2', '/accounts', 3000))
             
