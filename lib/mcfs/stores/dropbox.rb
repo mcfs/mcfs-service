@@ -245,12 +245,15 @@ module Stores
         # Lookup parent's metadata to update file's metadata
         parent = File.dirname(path)
         pmeta = metadata_for_dir(parent)
-      
-        if ometa = pmeta['contents'].find {|e| e['path'] == path }
-          ometa.merge!(metadata)
-        else
-          pmeta['contents'] << metadata
-        end
+        
+        pmeta['contents'].delete_if {|e| e['path'] == metadata['path']}
+        pmeta['contents'] << metadata
+        
+        # if ometa = pmeta['contents'].find {|e| e['path'] == metadata['path'] }
+        #   ometa.merge!(metadata)
+        # else
+        #   pmeta['contents'] << metadata
+        # end
       ensure
         reset_timer
       end
@@ -273,8 +276,6 @@ module Stores
         pmeta = metadata_for_dir(parent)
         
         pmeta['contents'].delete_if {|e| e['path'] == metadata['path']}
-        
-        p pmeta
       ensure
         reset_timer
       end
