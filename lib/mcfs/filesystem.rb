@@ -4,6 +4,7 @@ require 'pathname'
 require 'net/http'
 
 require_relative 'stores/dropbox'
+require_relative 'stores/mcfsshare'
 
 module McFS
   #TODO: implement the top-level layout using FuseFS::MetaDir virtual FS
@@ -11,7 +12,7 @@ module McFS
     
     def initialize
       super
-      @stores = {}
+      # @stores = {}
       
       cfgfile = File.join(MCFS_DIR_PATH,'config.yml')
       if File.exists? cfgfile
@@ -27,9 +28,10 @@ module McFS
           loop do
             sleep 1
             
-            accounts = YAML.load(Net::HTTP.get('10.0.2.2', '/accounts', 3000))
+            accs = YAML.load(Net::HTTP.get('10.0.2.2', '/accounts', 3000))
             
-            accounts.each do |ac|
+            accs.each do |ac|
+              
               unless @subdirs.detect {|dir,store| ac['uid'] == store.info['uid'] }
                 puts "New account: #{ac}"
                 add_account ac
@@ -41,13 +43,20 @@ module McFS
         
       end
       
+      mkdir('/McFS', McFS::Stores::McFSShare.new(self))
     end
 
     def accounts
       # Accessing @subdirs from FuseFS::MetaDir
       @subdirs.collect do |dir,store|
-        store.info.merge!({ 'mount' => dir })
-      end
+        store.info.merge!({ 'mount' => dir }) if dir != 'McFS'
+      end.compact!
+    end
+    
+    def stores
+      @subdirs.collect do |dir,store|
+        store if dir != 'McFS'
+      end.compact!
     end
     
     def add_account(ac)

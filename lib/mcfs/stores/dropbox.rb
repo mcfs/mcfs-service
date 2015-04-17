@@ -1,17 +1,17 @@
 require 'celluloid'
 require 'dropbox_sdk'
 
-#TODO: replace DropboxConfig with a generic structure like ostruct
-class DropboxConfig
-  attr_reader :app_key, :app_secret, :access_token, :user_id
-  
-  def initialize(key, secret, token, user)
-    @app_key = key
-    @app_secret = secret
-    @access_token = token
-    @user_id = user
-  end
-end
+# #TODO: replace DropboxClient with a generic structure like ostruct
+# class DropboxConfig
+#   attr_reader :app_key, :app_secret, :access_token, :user_id
+#
+#   def initialize(key, secret, token, user)
+#     @app_key = key
+#     @app_secret = secret
+#     @access_token = token
+#     @user_id = user
+#   end
+# end
 
 module McFS
 module Stores
@@ -90,7 +90,12 @@ module Stores
 
     def directory?(path)
       Log.info "[#{user_identity}]: dir? #{path}..."
-      @client.metadata(path)['is_dir']
+      
+      begin
+        @client.metadata(path)['is_dir']
+      rescue DropboxError => e
+        false
+      end
     end
 
     def can_mkdir?(path)
@@ -108,8 +113,13 @@ module Stores
 
     def file?(path)
       Log.info "[#{user_identity}]: file? #{path}..."
-      meta = @client.metadata(File.dirname(path))
-      meta['contents'].detect {|e| e['path'] == path }
+      
+      begin
+        meta = @client.metadata(File.dirname(path))
+        meta['contents'].detect {|e| e['path'] == path }
+      rescue DropboxError => e
+        false
+      end
     end
 
     # Everything is writable in Dropbox
