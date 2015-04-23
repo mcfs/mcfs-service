@@ -1,7 +1,0 @@
-#!/usr/bin/env ruby
-
-require 'mcfs'
-
-#TODO: ! parse command line
-#      ! start the client
-#      

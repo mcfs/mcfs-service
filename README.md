@@ -1,7 +1,9 @@
-# McFS
-Multi-cloud File System
+# McFS Service
+Multi-cloud File System Service
 
 ## Usage for devs
+
+!!! DEPRECATED !!! TODO: NEEDS UPDATE
 
 Install Ubuntu 14.10 and run the following commands to install necessary tools:
 
