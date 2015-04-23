@@ -22,6 +22,7 @@ module McFS; module Service
     def yaml_response
       case action
       when 'list'
+        # TODO: list all file systems
         # McFS::Service::Namespace.list.to_yaml
       else
         404
@@ -30,15 +31,15 @@ module McFS; module Service
     
     def process_post
       
-      nsreq = YAML.load(request.body.to_s)
+      fs_req = YAML.load(request.body.to_s)
       
       response.headers['Content-Type'] = 'application/x-yaml'
       response.body = '---'
       response.code = 200
       
       case action
-      when 'listfiles'
-        listfiles_action(nsreq)
+      when 'list'
+        list_action(fs_req)
       when 'add'
         # TODO: implement this action
         response.code = 404
@@ -54,13 +55,11 @@ module McFS; module Service
       @action ||= request.path_info[:action]
     end
     
-    def listfiles_action(nsreq)
-      namespace = nsreq['namespace']
-      dirpath   = nsreq['dirpath']
+    def list_action(fs_req)
+      filesystem = fs_req['filesystem']
+      dir        = fs_req['dir']
       
-      rsp = McFS::Service::Namespace.listfiles(namespace, dirpath).to_yaml
-      p rsp
-      response.body = rsp
+      response.body = ['test1.txt', 'test2.txt'].to_yaml
     end
     
   end #NamespacesResource

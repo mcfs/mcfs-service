@@ -2,7 +2,7 @@
 require 'reel'
 require 'webmachine'
 
-#require_relative 'restv1/namespaces'
+require_relative 'restv1/filesystems'
 require_relative 'restv1/stores'
 #require_relative 'restv1/shares'
 
@@ -14,7 +14,7 @@ module McFS; module Service
       @webmachine = Webmachine::Application.new
       
       @webmachine.routes do
-        # add ['api', 'v1', 'namespaces', :action], McFS::Service::NamespacesResource
+        add ['api', 'v1', 'filesystems', :action], McFS::Service::FileSystemsResource
         add ['api', 'v1', 'stores', :action], McFS::Service::StoresResource
         # add ['api', 'v1', 'shares', :action], McFS::Service::SharesResource
       end
