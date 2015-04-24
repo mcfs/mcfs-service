@@ -1,10 +1,119 @@
 
+# Namespaces provide a mechanism to combine one of more
+# namespaces without name collisions
+
 module McFS; module Service
-  # Namespaces provide a mechanism to combine one of more
-  # namespaces without name collisions
+  
+  # Define all class variables and methods
   class Namespace
     
-  end
+    # Repository that maps all namespaces from their uuid
+    # uuid(String) => Namespace
+    @@repo = {}
+    
+    # TODO: probably need to use Forwardable to delegate to @@repo
+    
+    def self.has_uuid?(uuid)
+      @@repo.has_key? uuid
+    end
+    
+    def self.add_uuid(uuid, nsobj)
+      # FIXME: implement the following exception
+      # throw <exception> if @@repo.has_key? uuid
+      @@repo[uuid] = nsobj
+    end
+    
+    def self.find(&block)
+      @@repo.find &block
+    end
+    
+    def self.each(&block)
+      @@repo.each &block
+    end
+    
+    def self.collect(&block)
+      @@repo.collect &block
+    end
+    
+  end # Namespace<static>
+  
+  # Define all instance variables and methods
+  class Namespace
+    
+    # Every namespace has a unique identifier
+    attr_reader :uuid, :names
+    
+    # Not sure what arguments are needed for intialization
+    def initialize(uuid)
+      # FIXME: add checks for validating the format of uuid string
+      @uuid = uuid
+      
+      # Maps from a name to its namespace handler
+      # name(String) => Namespace
+      @names = {}
+      
+      self.class.add_uuid(uuid, self)
+    end
+    
+    # Return [base, rest]
+    def split_path(path)
+      base, *rest = path.scan(/[^\/]+/)
+      [ base, '/' + File.join(rest) ]
+    end
+    
+    # Returns a list of entry names
+    def list(dirpath)
+      base, rest = split_path(dirpath)
+      
+      # If we are asked for contents directly under current namespace,
+      # just return the keys from @names. Else delegate the call to
+      # the namespace object responsible for it.
+      if base == '/'
+        @names.keys
+      else
+        if baseobj = @names[File.basename(base)]
+          baseobj.list(rest)
+        else
+          throw NonExistentPathError
+        end
+        
+      end
+      
+    end
+    
+    # Given a path return true if it's a file
+    def file?(path)
+    end
+    
+    # Given a path return true if it's a directory
+    def dir?(path)
+    end
+    
+    def mkdir(dirpath, nsobj)
+      base, rest = split_path(dirpath)
+      
+      if base == '/'
+        throw InvalidPathError
+      end
+      
+      if rest.empty?
+        @names[File.basename(base)] = nsobj
+      else
+        if baseobj = @names[File.basename(base)]
+          baseobj.mkdir(rest, nsobj)
+        else
+          throw NonExistentPathError
+        end
+        
+      end
+    end
+    
+    def rmdir(name)
+      throw UnimplementedMethodError
+      @names.delete(name)
+    end
+        
+  end # Namespace<dynamic>
   
 end ; end
 
@@ -32,12 +141,6 @@ end ; end
 #       @stores[store.name] = store
 #     end
 #
-#     # Return [base, rest]
-#     def split_path(path)
-#       base, *rest = path.scan(/[^\/]+/)
-#
-#       [ base, '/' + File.join(rest) ]
-#     end
 #
 #     def listfiles(dirpath)
 #       Log.info "Listing files under : #{dirpath}"

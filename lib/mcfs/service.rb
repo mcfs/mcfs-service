@@ -1,6 +1,7 @@
 
 require 'yaml'
 require 'logger'
+require 'pathname'
 require 'commander'
 require 'celluloid'
 require 'securerandom'
@@ -11,7 +12,7 @@ require_relative 'service/namespaces'
 require_relative 'service/restv1'
 
 module McFS; module Service
-  
+    
   McFS::Service::Log = Logger.new(STDOUT)
   
   # Generate a 1024 bit token to use as secret

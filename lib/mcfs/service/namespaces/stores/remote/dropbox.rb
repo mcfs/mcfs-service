@@ -15,42 +15,41 @@ module McFS; module Service; module Stores
       Log.info "New dropbox account added for #{@client.account_info['display_name']}"
     end
     
-    # @return metadata of contents of a directory
-    # Sample:
-    #  [
-    #    {
-    #      "name" : <filename>,
-    #      "dir?" : <boolean>,
-    #      "size" : <size in bytes>,
-    #      "server_mtime" : <TBD>,
-    #      "client_mtime" : <TBD>
-    #    }
-    #  ]
+    # Retrieve metadata of a directory
+    #
+    # @return DirMeta
     #
     # dirpath is expected to be a directory
-    def get_dirmeta(dirpath)
+    def metadata(dirpath)
       Log.info "Getting dropbox metadata for #{dirpath}"
       
       metadata = @client.metadata(dirpath)
       
-      p metadata
-      
       if metadata['is_dir'] == false
         # TODO: throw exception
-        return []
+        return nil
       end
       
-      metadata['contents'].collect do |ent|
-        {
-          'name' => File.basename(ent['path']),
-          'dir?' => ent['is_dir'],
-          'size' => ent['bytes'],
-          'server_mtime' => ent['modified'],
-          'client_mtime' => ent['client_mtime']
-        }
+      # Note that we store complete path of the directory here whereas
+      # we keep only base names of its contents.
+      dirmeta = DirMeta.new(metadata['path'], metadata['modified'])
+      
+      metadata['contents'].each do |entry|
+        name  = File.basename(entry['path'])
+        size  = entry['bytes']
+        mtime = entry['modified']
+        
+        meta = if entry['is_dir']
+          DirMeta.new(name, mtime)
+        else
+          FileMeta.new(name, size, mtime)
+        end
+        
+        dirmeta.add_entry meta
       end
       
-    end
+      dirmeta
+    end # metadata(dirpath)
     
   end # Dropbox
   

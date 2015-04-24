@@ -1,74 +1,34 @@
 
+require_relative 'resource'
+
 # APIs:
 #  GET  /stores/list - list all store names
 #  POST /stores/add  - add a new store (currently supports Dropbox)
 
 module McFS; module Service
 
-  class StoresResource < Webmachine::Resource
+  class StoresResource < McFSResource
     
-    def allowed_methods
-      ['GET', 'POST']
-    end
-    
-    def content_types_provided
-      [["application/x-yaml", :yaml_response]]
-    end
-    
-    def resource_exists?
-      true
-    end
-    
-    def yaml_response
-      puts "pass 1"
-      case action
-      when 'list'
-        list_stores
-      else
-        404
-      end
-    end # yaml_response
-    
-    def process_post
-      req_data = YAML.load(request.body.to_s)
+    def action_get_list
+      Log.info "List stores action invoked"
       
-      response.headers['Content-Type'] = 'application/x-yaml'
-      response.body = '---'
-      response.code = 200
+      # Collect all namespaces that are stores
+      Namespace.collect { |uuid, ns| uuid if ns.is_a? Store }.compact
+    end
+    
+    def action_post_add(request_data)
+      Log.info "Add store action invoked"
       
-      case action
-      when 'add'
-        add_store(req_data)
+      uuid     = request_data['uuid']
+      service  = request_data['service']
+      token    = request_data['token']
+      
+      if McFS::Service::Store.instantiate(service, uuid, token)
+        "success"
       else
-        response.code = 404
+        "failure"
       end
       
-    end # process_post
-    
-    private
-    
-    def action
-      @action ||= request.path_info[:action]
-    end
-    
-    # TODO: It's probably better to separate actions to into its own classes
-    
-    def list_stores
-      stores = McFS::Service::Store.collect { |uuid, store| uuid }
-      response.body = stores.to_yaml
-    end
-    
-    # FIXME: need to support other kinds of stores
-    def add_store(req)
-      uuid     = req['uuid']
-      service  = req['service']
-      token    = req['token']
-      
-      if McFS::Service::Store.add(uuid, service, token)
-        response.body = "success".to_yaml
-      else
-        response.body = "failed".to_yaml
-      end
     end # add_store
     
   end #StoresResource

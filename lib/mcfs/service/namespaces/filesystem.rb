@@ -7,6 +7,14 @@ module McFS; module Service
   # by an mcfs client
   class FileSystem < Namespace
     
+    def mount(nsobj, dirname)
+      mkdir(dirname, nsobj)
+    end
+    
+    def unmount(dirname)
+      rmdir(dirname)
+    end
+    
   end
   
 end; end
