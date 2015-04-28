@@ -16,7 +16,7 @@ module McFS; module Service
       Namespace.collect { |uuid, ns| uuid if ns.is_a? Store }.compact
     end
     
-    def action_post_add(request_data)
+    def action_post_add
       Log.info "Add store action invoked"
       
       uuid     = request_data['uuid']

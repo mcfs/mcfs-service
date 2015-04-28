@@ -6,6 +6,7 @@ module McFS; module Service
   
   # Define all class variables and methods
   class Namespace
+    include Celluloid
     
     # Repository that maps all namespaces from their uuid
     # uuid(String) => Namespace
@@ -40,6 +41,60 @@ module McFS; module Service
   # Define all instance variables and methods
   class Namespace
     
+    class MetaData
+      attr_reader :name, :mtime
+      attr_accessor :deleted
+      alias_method :deleted?, :deleted
+      
+      # NOTE: name is basename (not path)
+      def initialize(name, mtime)
+        @name = name
+        @mtime = mtime
+        @deleted = false
+      end
+      
+      def to_hash
+        {
+          'name' => @name,
+          'mtime' => @mtime
+        }
+      end
+    end # MetaData
+    
+    class DirMeta < MetaData
+      attr_reader :contents
+      
+      def initialize(name, mtime)
+        super
+        @contents = []
+      end
+      
+      def add_entry(meta)
+        @contents << meta
+      end
+      
+      def remove_entry(name)
+        @contents.delete_if { |entry| entry.name == name }
+      end
+      
+      def to_hash
+        super.merge({ 'type' => :directory })
+      end
+    end # DirMeta
+    
+    class FileMeta < MetaData
+      attr_reader :size
+      
+      def initialize(name, size, mtime)
+        super(name, mtime)
+        @size = size
+      end
+      
+      def to_hash
+        super.merge({ 'size' => size, 'type' => :file })
+      end
+    end # FileMeta
+    
     # Every namespace has a unique identifier
     attr_reader :uuid, :names
     
@@ -63,44 +118,35 @@ module McFS; module Service
     
     # Returns a list of entry names
     def list(dirpath)
+      Log.info "Namespace list contents of #{dirpath}"
+      
       base, rest = split_path(dirpath)
       
       # If we are asked for contents directly under current namespace,
       # just return the keys from @names. Else delegate the call to
       # the namespace object responsible for it.
-      if base == '/'
-        @names.keys
-      else
+      if base
         if baseobj = @names[File.basename(base)]
           baseobj.list(rest)
         else
           throw NonExistentPathError
         end
-        
+      else
+        @names.keys
       end
       
     end
     
-    # Given a path return true if it's a file
-    def file?(path)
-    end
-    
-    # Given a path return true if it's a directory
-    def dir?(path)
-    end
-    
-    def mkdir(dirpath, nsobj)
-      base, rest = split_path(dirpath)
+    def metadata(path)
+      Log.info "Namespace metadata for #{path}"
+      
+      base, rest = split_path(path)
       
       if base == '/'
-        throw InvalidPathError
-      end
-      
-      if rest.empty?
-        @names[File.basename(base)] = nsobj
+        throw UnexpectedError
       else
         if baseobj = @names[File.basename(base)]
-          baseobj.mkdir(rest, nsobj)
+          baseobj.metadata(rest)
         else
           throw NonExistentPathError
         end
@@ -108,11 +154,56 @@ module McFS; module Service
       end
     end
     
-    def rmdir(name)
-      throw UnimplementedMethodError
-      @names.delete(name)
-    end
-        
+    def readfile(path)
+      base, rest = split_path(path)
+      
+      if base and base_obj = @names[File.basename(base)]
+        base_obj.readfile(rest)
+      else
+        throw NonExistentPathError
+      end
+      
+    end # readfile
+    
+    def writefile(path, data)
+      Log.info "Namespace writefile to #{path}"
+      
+      base, rest = split_path(path)
+      
+      if base and base_obj = @names[File.basename(base)]
+        base_obj.writefile(rest, data)
+      else
+        throw NonExistentPathError
+      end
+      
+    end # writefile
+    
+    def mkdir(path)
+      Log.info "Namespace make directory #{path}"
+      
+      base, rest = split_path(path)
+      
+      if base and base_obj = @names[File.basename(base)]
+        base_obj.mkdir(rest)
+      else
+        throw NonExistentPathError
+      end
+      
+    end # mkdir
+    
+    def delete(path)
+      Log.info "Namespace delete path #{path}"
+      
+      base, rest = split_path(path)
+      
+      if base and base_obj = @names[File.basename(base)]
+        base_obj.delete(rest)
+      else
+        throw NonExistentPathError
+      end
+      
+    end # mkdir
+    
   end # Namespace<dynamic>
   
 end ; end

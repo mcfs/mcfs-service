@@ -3,16 +3,40 @@ require_relative 'namespace'
 
 module McFS; module Service
 
+  class FileSystem < Namespace
+    def self.instantiate(uuid)
+      FileSystem.new(uuid)
+    end
+  end
+  
   # A filesystem is a collection of namespaces that can be mounted
   # by an mcfs client
   class FileSystem < Namespace
     
-    def mount(nsobj, dirname)
-      mkdir(dirname, nsobj)
-    end
+    def mount(nsobj, dirpath)
+      Log.info "FileSystem mount #{dirpath}"
+      
+      if dirpath == '/'
+        throw InvalidPathError
+      end
+      
+      base, rest = split_path(dirpath)
+      
+      if rest == '/'
+        @names[File.basename(base)] = nsobj
+      else
+        if baseobj = @names[File.basename(base)]
+          baseobj.mkdir(rest, nsobj)
+        else
+          throw NonExistentPathError
+        end
+        
+      end
+    end # mount
     
     def unmount(dirname)
-      rmdir(dirname)
+      throw UnimplementedMethodError
+      @names.delete(dirname)
     end
     
   end

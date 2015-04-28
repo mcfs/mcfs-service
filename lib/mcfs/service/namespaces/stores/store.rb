@@ -33,8 +33,6 @@ module McFS; module Service
   # storage services
   class Store < Namespace
     
-    include Celluloid    
-    
     # TODO: define abstract methods needed to operate on a store
     
   end # Store<dynamic>

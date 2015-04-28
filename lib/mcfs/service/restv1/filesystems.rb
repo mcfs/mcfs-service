@@ -1,67 +1,167 @@
 
+require_relative 'resource'
+
 # FileSystems will be supported at a later stage.
 
 # APIs:
 
 module McFS; module Service
 
-  class FileSystemsResource < Webmachine::Resource
+  class FileSystemsResource < McFSResource
     
-    def allowed_methods
-      ['GET', 'POST']
+    def action_get_list
+      Log.info "List filesystems action invoked"
+      
+      # Collect all namespaces that are stores
+      Namespace.collect { |uuid, ns| uuid if ns.is_a? FileSystem }.compact
     end
     
-    def content_types_provided
-      [["application/x-yaml", :yaml_response]]
-    end
-    
-    def resource_exists?
-      true
-    end
-    
-    def yaml_response
-      case action
-      when 'list'
-        # TODO: list all file systems
-        # McFS::Service::Namespace.list.to_yaml
+    # POST /filesystems/add
+    #
+    def action_post_add
+      Log.info "Add filesystem action invoked"
+      
+      uuid     = request_data['uuid']
+      
+      if McFS::Service::FileSystem.instantiate(uuid)
+        "success"
       else
+        "failure"
+      end
+      
+    end # action_post_add
+    
+    def action_post_mountns
+      Log.info "Mounting namespace under filesystem"
+      
+      fs_uuid = request_data['filesystem']
+      ns_uuid = request_data['namespace']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      uuid, ns_obj = Namespace.find { |uuid, ns| uuid == ns_uuid }
+      
+      if fs_obj and ns_obj
+        # Mount the namespace with its name as mount point
+        # FIXME: check for success/failure
+        if fs_obj.mount(ns_obj, ns_uuid)
+          "success"
+        else
+          "failure"
+        end
+      else
+        # FIXME: return proper error
         404
       end
-    end # yaml_response
+      
+    end # action_post_mountns
     
-    def process_post
+    def action_post_browse
+      Log.info "Browsing filesystem directory"
       
-      fs_req = YAML.load(request.body.to_s)
+      fs_uuid = request_data['filesystem']
+      dirpath = request_data['directory']
       
-      response.headers['Content-Type'] = 'application/x-yaml'
-      response.body = '---'
-      response.code = 200
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
       
-      case action
-      when 'list'
-        list_action(fs_req)
-      when 'add'
-        # TODO: implement this action
-        response.code = 404
+      if fs_obj
+        fs_obj.list dirpath
       else
-        response.code = 404
+        # FIXME: return proper error
+        404
       end
       
-    end # process_post
+    end # action_post_browse
     
-    private
-    
-    def action
-      @action ||= request.path_info[:action]
-    end
-    
-    def list_action(fs_req)
-      filesystem = fs_req['filesystem']
-      dir        = fs_req['dir']
+    def action_post_metadata
+      Log.info "Retrieving metadata of a directory entry"
       
-      response.body = ['test1.txt', 'test2.txt'].to_yaml
-    end
+      fs_uuid = request_data['filesystem']
+      fs_path = request_data['path']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      
+      if fs_obj
+        if meta = fs_obj.metadata(fs_path)
+          meta.to_hash
+        else
+          nil
+        end
+      else
+        # FIXME: return proper error
+        404
+      end
+      
+    end # action_post_metadata
     
-  end #NamespacesResource
+    def action_post_readfile
+      Log.info "Reading contents of file"
+      
+      fs_uuid = request_data['filesystem']
+      fs_path = request_data['path']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      
+      if fs_obj
+        fs_obj.readfile(fs_path)
+      else
+        # FIXME: return proper error
+        404
+      end
+      
+    end # readfile
+    
+    def action_post_writefile
+      Log.info "Write contents of file"
+      
+      fs_uuid = request_data['filesystem']
+      fs_path = request_data['path']
+      data = request_data['data']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      
+      if fs_obj and fs_obj.writefile(fs_path, data)
+        nil
+      else
+        # FIXME: return proper error
+        404
+      end
+      
+    end # writefile
+    
+    def action_post_mkdir
+      Log.info "Make new directory"
+      
+      fs_uuid = request_data['filesystem']
+      fs_path = request_data['path']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      
+      if fs_obj and fs_obj.mkdir(fs_path)
+        nil
+      else
+        # FIXME: return proper error
+        404
+      end
+      
+    end # mkdir
+    
+    def action_post_delete
+      Log.info "Delete a path"
+      
+      fs_uuid = request_data['filesystem']
+      fs_path = request_data['path']
+      
+      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      
+      if fs_obj and fs_obj.delete(fs_path)
+        nil
+      else
+        # FIXME: return proper error
+        404
+      end
+      
+    end # delete
+    
+  end #FileSytemsResource
   
 end; end

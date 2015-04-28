@@ -1,29 +1,33 @@
 
+require_relative 'resource'
+
 module McFS; module Service
 
-  class SharesResource < Webmachine::Resource
+  class SharesResource < McFSResource
     
-    def allowed_methods
-      ['GET']
+    def action_get_list
+      Log.info "List shares action invoked"
+      
+      # Collect all namespaces that are stores
+      Namespace.collect { |uuid, ns| uuid if ns.is_a? Share }.compact
     end
     
-    def content_types_provided
-      [["application/x-yaml", :yaml_response]]
-    end
-    
-    def resource_exists?
-      true
-    end
-    
-    def yaml_response
-      {}.to_yaml
-    end
-    
-    # def process_post
-    #   puts request.body.to_s
-    #   response.headers['Content-Type'] = 'application/x-yaml'
-    #   response.body = '---'
-    # end
+    def action_post_add
+      Log.info "Add share action invoked"
+      
+      404 # Unsupported for now
+      
+      # uuid     = request_data['uuid']
+      # service  = request_data['service']
+      # token    = request_data['token']
+      #
+      # if McFS::Service::Store.instantiate(service, uuid, token)
+      #   "success"
+      # else
+      #   "failure"
+      # end
+      
+    end # add_share
     
   end #SharesResource
   

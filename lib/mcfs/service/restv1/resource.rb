@@ -1,3 +1,4 @@
+require 'pp'
 
 # A generic Webmachine Resource that can be sub-classed by other resources
 # of McFS REST API
@@ -40,17 +41,16 @@ module McFS; module Service
     def process_post
       Log.info "REST API v1 - POST #{request.uri}"
       
-      # All requests are to be transmitted in YAML format
-      request_data = YAML.load(request.body.to_s)
-      
-      response_data = perform_action(:post, request_data)
+      response_data = perform_action(:post)
       
       # If the function returned an integer, then its an HTTP response
       # code due to error condition.
       if response_data.is_a? Integer
         response.code = response_data
       else
+        pp response_data
         response.body = response_data.to_yaml
+        pp response_data.to_yaml
       end
     end # process_post
     
@@ -58,6 +58,11 @@ module McFS; module Service
     
     def action
       @action ||= request.path_info[:action]
+    end
+    
+    def request_data
+      # All requests are to be transmitted in YAML format
+      @request_data ||= YAML.load(request.body.to_s)
     end
     
     def perform_action(type, *args)

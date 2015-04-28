@@ -3,41 +3,6 @@ module McFS; module Service
   
   # Remote stores represent cloud storage services
   class RemoteStore < Store
-    class MetaData
-      attr_reader :name, :mtime
-      
-      # NOTE: name is basename (not path)
-      def initialize(name, mtime)
-        @name = name
-        @mtime = mtime
-      end
-    end
-    
-    class DirMeta < MetaData
-      attr_reader :contents
-      
-      def initialize(name, mtime)
-        super
-        @contents = []
-      end
-      
-      def add_entry(meta)
-        @contents << meta
-      end
-      
-      def remove_entry(name)
-        @contents.delete_if { |entry| entry.name == name }
-      end
-    end
-    
-    class FileMeta < MetaData
-      attr_reader :size
-      
-      def initialize(name, size, mtime)
-        super(name, mtime)
-        @size = size
-      end
-    end
     
     # Remote stores need to implement some kind of mechanism for
     # automatic metadata caching
@@ -60,7 +25,7 @@ module McFS; module Service
       while dir = dirs.pop
         Log.info "Fetching DirMeta for #{dir}"
         
-        meta[dir] = metadata(dir)
+        meta[dir] = dirmeta(dir)
         
         # Add sub-directories into dirs[]
         meta[dir].contents.each do |entry|
@@ -73,17 +38,70 @@ module McFS; module Service
       meta
       
     end # generate_metadata
-      
+    
     def list(dirpath)
-      dirpath = Pathname.new(dirpath).cleanpath.to_s
-      dirmeta = @metadata ? @metadata[dirpath] : metadata(dirpath)
-      dirmeta.contents.collect { |entry| entry.name }
+      Log.info "RemoteStore list contents of #{dirpath}"
+      
+      path = Pathname.new(dirpath).cleanpath.to_s
+      meta = @metadata ? @metadata[dirpath] : dirmeta(dirpath)
+      meta.contents.collect { |entry| entry.name }
     end
+    
+    def metadata(path)
+      Log.info "RemoteStore metadata for #{path}"
+      
+      # For now we need metadata to be already cached
+      unless @metadata
+        throw UnimplementedFeature
+      end
+
+      if path == '/'
+        @metadata[path]
+      else
+        filename = File.basename(path)
+        parent_dir = File.dirname(path)
+        
+        if parent_meta = @metadata[parent_dir]
+          parent_meta.contents.find { |entry| entry.name == filename }
+        else
+          nil
+        end
+        
+      end
+    end # metadata
+    
+    def update_metadata(path, meta)
+      Log.info "RemoteStore updating metadata for #{path}"
+      
+      if meta.is_a? DirMeta
+        if meta.deleted?
+          @metadata.delete(path)
+        else
+          @metadata[path] = meta
+        end
+        
+      else # FileMeta
+        dirname = File.dirname(path)
+        
+        if dirmeta = @metadata[dirname]
+          dirmeta.remove_entry meta.name
+          
+          unless meta.deleted?
+            dirmeta.add_entry meta
+          end
+          
+        else
+          throw something
+        end
+      end
+      
+      meta
+    end # update_metadata
     
     private
     
     # Retrieve metadata of a directory
-    def metadata(dirpath)
+    def dirmeta(dirpath)
       throw UnimplementedFeature
     end
     

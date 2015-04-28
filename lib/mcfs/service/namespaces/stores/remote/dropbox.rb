@@ -1,3 +1,4 @@
+
 require 'dropbox_sdk'
 
 require_relative 'remote_store'
@@ -20,36 +21,103 @@ module McFS; module Service; module Stores
     # @return DirMeta
     #
     # dirpath is expected to be a directory
-    def metadata(dirpath)
+    def dirmeta(dirpath)
       Log.info "Getting dropbox metadata for #{dirpath}"
       
+      # Get metadata of the directory from Dropbox server
       metadata = @client.metadata(dirpath)
       
-      if metadata['is_dir'] == false
-        # TODO: throw exception
-        return nil
+      pp metadata
+      
+      dir_meta = create_metadata(metadata)
+      
+      unless dir_meta.is_a? DirMeta
+        throw something
       end
       
-      # Note that we store complete path of the directory here whereas
-      # we keep only base names of its contents.
-      dirmeta = DirMeta.new(metadata['path'], metadata['modified'])
-      
-      metadata['contents'].each do |entry|
-        name  = File.basename(entry['path'])
-        size  = entry['bytes']
-        mtime = entry['modified']
-        
-        meta = if entry['is_dir']
-          DirMeta.new(name, mtime)
-        else
-          FileMeta.new(name, size, mtime)
-        end
-        
-        dirmeta.add_entry meta
+      metadata['contents'].each do |entry|        
+        dir_meta.add_entry create_metadata(entry)
       end
       
-      dirmeta
-    end # metadata(dirpath)
+      dir_meta
+      
+    end # dirmeta(dirpath)
+    
+    def readfile(path)
+      data, metadata = @client.get_file_and_metadata(path)
+      
+      {
+        'data' => data,
+        'size' => metadata['bytes']
+      }
+    end
+    
+    def writefile(path, data)
+      Log.info "Dropbox writefile to #{path}"
+      
+      metadata = @client.put_file(path, data, true)
+
+      pp metadata
+        
+      update_metadata(path, create_metadata(metadata))
+    end
+    
+    # def can_delete?(path)
+    #   true
+    # end
+    #
+    def delete(path)
+      Log.info "Dropbox delete #{path}"
+
+      metadata = @client.file_delete(path)
+      
+      pp metadata
+      
+      update_metadata(path, create_metadata(metadata))
+    end
+    
+    # def can_mkdir?(path)
+    #   true
+    # end
+    #
+    def mkdir(path)
+      Log.info "Dropbox mkdir #{path}"
+
+      metadata = @client.file_create_folder(path)
+    
+      pp metadata
+        
+      update_metadata(path, create_metadata(metadata))
+    end # mkdir
+    
+    # def can_rmdir?(path)
+    #   true
+    # end
+    #
+    alias_method :rmdir, :delete
+    
+    private
+    
+    # Create a MetaData(DirMeta/FileMeta) from the metadata hash
+    # provided by dropbox sdk
+    def create_metadata(metadata)
+      name  = File.basename(metadata['path'])
+      size  = metadata['bytes']
+      mtime = metadata['modified']
+      
+      meta = if metadata['is_dir']
+        DirMeta.new(name, mtime)
+      else
+        FileMeta.new(name, size, mtime)
+      end
+      
+      if metadata['is_deleted']
+        meta.deleted = true
+      end
+      
+      meta
+      
+    end # create_metadata
     
   end # Dropbox
   
