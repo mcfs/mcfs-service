@@ -73,29 +73,28 @@ module McFS; module Service
     def update_metadata(path, meta)
       Log.info "RemoteStore updating metadata for #{path}"
       
-      if meta.is_a? DirMeta
+      pp meta
+      
+      # NOTE: meta is expected to be never of the root directory
+      
+      parentdir = File.dirname(path)
+      
+      if parent = @metadata[parentdir]
+        parent.remove_entry meta.name
+        
         if meta.deleted?
-          @metadata.delete(path)
+          @metadata.delete(path) if meta.is_a? DirMeta
         else
-          @metadata[path] = meta
+          parent.add_entry meta
+          @metadata[path] = meta if meta.is_a? DirMeta
         end
         
-      else # FileMeta
-        dirname = File.dirname(path)
-        
-        if dirmeta = @metadata[dirname]
-          dirmeta.remove_entry meta.name
-          
-          unless meta.deleted?
-            dirmeta.add_entry meta
-          end
-          
-        else
-          throw something
-        end
+      else
+        throw something
       end
       
       meta
+      
     end # update_metadata
     
     private
