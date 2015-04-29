@@ -7,8 +7,8 @@ module McFS; module Service; module Stores
   
   class Dropbox < RemoteStore
     
-    def initialize(uuid, token)
-      super uuid
+    def initialize(nsid, token)
+      super nsid
       # TODO: re-think if we really need to store the token
       @token = token
       @client = DropboxClient.new(token)
@@ -44,6 +44,8 @@ module McFS; module Service; module Stores
     end # dirmeta(dirpath)
     
     def readfile(path)
+      Log.info "Dropbox readfile #{path}"
+      
       data, metadata = @client.get_file_and_metadata(path)
       
       {

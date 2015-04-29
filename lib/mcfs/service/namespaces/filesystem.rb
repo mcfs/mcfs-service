@@ -4,8 +4,8 @@ require_relative 'namespace'
 module McFS; module Service
 
   class FileSystem < Namespace
-    def self.instantiate(uuid)
-      FileSystem.new(uuid)
+    def self.instantiate(nsid)
+      FileSystem.new(nsid)
     end
   end
   

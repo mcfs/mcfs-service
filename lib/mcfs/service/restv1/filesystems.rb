@@ -13,7 +13,7 @@ module McFS; module Service
       Log.info "List filesystems action invoked"
       
       # Collect all namespaces that are stores
-      Namespace.collect { |uuid, ns| uuid if ns.is_a? FileSystem }.compact
+      Namespace.collect { |nsid, ns| nsid if ns.is_a? FileSystem }.compact
     end
     
     # POST /filesystems/add
@@ -21,9 +21,9 @@ module McFS; module Service
     def action_post_add
       Log.info "Add filesystem action invoked"
       
-      uuid     = request_data['uuid']
+      nsid     = request_data['uuid']
       
-      if McFS::Service::FileSystem.instantiate(uuid)
+      if McFS::Service::FileSystem.instantiate(nsid)
         "success"
       else
         "failure"
@@ -34,16 +34,16 @@ module McFS; module Service
     def action_post_mountns
       Log.info "Mounting namespace under filesystem"
       
-      fs_uuid = request_data['filesystem']
-      ns_uuid = request_data['namespace']
+      fs_nsid = request_data['filesystem']
+      ns_nsid = request_data['namespace']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
-      uuid, ns_obj = Namespace.find { |uuid, ns| uuid == ns_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
+      nsid, ns_obj = Namespace.find { |nsid, ns| nsid == ns_nsid }
       
       if fs_obj and ns_obj
         # Mount the namespace with its name as mount point
         # FIXME: check for success/failure
-        if fs_obj.mount(ns_obj, ns_uuid)
+        if fs_obj.mount(ns_obj, ns_nsid)
           "success"
         else
           "failure"
@@ -58,10 +58,10 @@ module McFS; module Service
     def action_post_browse
       Log.info "Browsing filesystem directory"
       
-      fs_uuid = request_data['filesystem']
+      fs_nsid = request_data['filesystem']
       dirpath = request_data['directory']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj
         fs_obj.list dirpath
@@ -75,10 +75,12 @@ module McFS; module Service
     def action_post_metadata
       Log.info "Retrieving metadata of a directory entry"
       
-      fs_uuid = request_data['filesystem']
+      uuid, store = Namespace.find {|uuid,s| s.is_a? RemoteStore }
+      
+      fs_nsid = request_data['filesystem']
       fs_path = request_data['path']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj
         if meta = fs_obj.metadata(fs_path)
@@ -96,10 +98,10 @@ module McFS; module Service
     def action_post_readfile
       Log.info "Reading contents of file"
       
-      fs_uuid = request_data['filesystem']
+      fs_nsid = request_data['filesystem']
       fs_path = request_data['path']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj
         fs_obj.readfile(fs_path)
@@ -113,11 +115,11 @@ module McFS; module Service
     def action_post_writefile
       Log.info "Write contents of file"
       
-      fs_uuid = request_data['filesystem']
+      fs_nsid = request_data['filesystem']
       fs_path = request_data['path']
       data = request_data['data']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj and fs_obj.writefile(fs_path, data)
         nil
@@ -131,10 +133,10 @@ module McFS; module Service
     def action_post_mkdir
       Log.info "Make new directory"
       
-      fs_uuid = request_data['filesystem']
+      fs_nsid = request_data['filesystem']
       fs_path = request_data['path']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj and fs_obj.mkdir(fs_path)
         nil
@@ -148,10 +150,10 @@ module McFS; module Service
     def action_post_delete
       Log.info "Delete a path"
       
-      fs_uuid = request_data['filesystem']
+      fs_nsid = request_data['filesystem']
       fs_path = request_data['path']
       
-      uuid, fs_obj = Namespace.find { |uuid, ns| uuid == fs_uuid }
+      nsid, fs_obj = Namespace.find { |nsid, ns| nsid == fs_nsid }
       
       if fs_obj and fs_obj.delete(fs_path)
         nil

@@ -7,7 +7,7 @@ module McFS; module Service
     # Remote stores need to implement some kind of mechanism for
     # automatic metadata caching
     
-    def initialize(uuid)
+    def initialize(nsid)
       super
       
       # Fetch the complete metadata in the background. @metadata
@@ -54,14 +54,17 @@ module McFS; module Service
       unless @metadata
         throw UnimplementedFeature
       end
-
-      if path == '/'
+      
+      # If what we are looking for is a directory, we will be able to
+      # find it in the @metadata cache itself.
+      if @metadata.has_key? path
         @metadata[path]
       else
         filename = File.basename(path)
         parent_dir = File.dirname(path)
         
         if parent_meta = @metadata[parent_dir]
+          # TODO: need to ensure if it's a file ?
           parent_meta.contents.find { |entry| entry.name == filename }
         else
           nil

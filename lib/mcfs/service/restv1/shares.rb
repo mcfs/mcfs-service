@@ -9,23 +9,31 @@ module McFS; module Service
       Log.info "List shares action invoked"
       
       # Collect all namespaces that are stores
-      Namespace.collect { |uuid, ns| uuid if ns.is_a? Share }.compact
+      Namespace.collect { |nsid, ns| nsid if ns.is_a? McFSShare }.compact
     end
     
     def action_post_add
       Log.info "Add share action invoked"
       
-      404 # Unsupported for now
+      nsid = request_data['uuid']
+      store_nsids = request_data['stores']
+      stores = []
       
-      # uuid     = request_data['uuid']
-      # service  = request_data['service']
-      # token    = request_data['token']
-      #
-      # if McFS::Service::Store.instantiate(service, uuid, token)
-      #   "success"
-      # else
-      #   "failure"
-      # end
+      store_nsids.each do |store_nsid|
+        store_nsid, store = Namespace.find {|nsid, ns| nsid == store_nsid }
+        
+        if store
+          stores << store
+        else
+          return 'failure'
+          throw something
+        end
+      end
+      
+      # Just create the object and it will added to global namespace list
+      McFS::Service::McFSShare.new(nsid, stores)
+      
+      return 'success'
       
     end # add_share
     

@@ -12,14 +12,14 @@ module McFS; module Service
     end
     
     # Add a new store to the repository
-    def self.instantiate(service, uuid, token)
+    def self.instantiate(service, nsid, token)
       
       # FIXME: catch NameError raised when the name does not exist
       klass = McFS::Service::Stores::const_get(service)
       
       # Ensure klass is a sub-class of RemoteStore
       if klass < RemoteStore
-        klass.new(uuid, token)
+        klass.new(nsid, token)
       else
         # FIXME: throw exception
         throw StoreNotSupportedError

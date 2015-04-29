@@ -8,20 +8,20 @@ module McFS; module Service
   class Namespace
     include Celluloid
     
-    # Repository that maps all namespaces from their uuid
-    # uuid(String) => Namespace
+    # Repository that maps all namespaces from their nsid
+    # nsid(String) => Namespace
     @@repo = {}
     
     # TODO: probably need to use Forwardable to delegate to @@repo
     
-    def self.has_uuid?(uuid)
-      @@repo.has_key? uuid
+    def self.has_nsid?(nsid)
+      @@repo.has_key? nsid
     end
     
-    def self.add_uuid(uuid, nsobj)
+    def self.add_nsid(nsid, nsobj)
       # FIXME: implement the following exception
-      # throw <exception> if @@repo.has_key? uuid
-      @@repo[uuid] = nsobj
+      # throw <exception> if @@repo.has_key? nsid
+      @@repo[nsid] = nsobj
     end
     
     def self.find(&block)
@@ -96,18 +96,18 @@ module McFS; module Service
     end # FileMeta
     
     # Every namespace has a unique identifier
-    attr_reader :uuid, :names
+    attr_reader :nsid, :names
     
     # Not sure what arguments are needed for intialization
-    def initialize(uuid)
-      # FIXME: add checks for validating the format of uuid string
-      @uuid = uuid
+    def initialize(nsid)
+      # FIXME: add checks for validating the format of nsid string
+      @nsid = nsid
       
       # Maps from a name to its namespace handler
       # name(String) => Namespace
       @names = {}
       
-      self.class.add_uuid(uuid, self)
+      self.class.add_nsid(nsid, self)
     end
     
     # Return [base, rest]

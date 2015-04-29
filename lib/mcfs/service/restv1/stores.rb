@@ -13,17 +13,17 @@ module McFS; module Service
       Log.info "List stores action invoked"
       
       # Collect all namespaces that are stores
-      Namespace.collect { |uuid, ns| uuid if ns.is_a? Store }.compact
+      Namespace.collect { |nsid, ns| nsid if ns.is_a? Store }.compact
     end
     
     def action_post_add
       Log.info "Add store action invoked"
       
-      uuid     = request_data['uuid']
+      nsid     = request_data['uuid']
       service  = request_data['service']
       token    = request_data['token']
       
-      if McFS::Service::Store.instantiate(service, uuid, token)
+      if McFS::Service::Store.instantiate(service, nsid, token)
         "success"
       else
         "failure"
