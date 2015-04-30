@@ -4,6 +4,11 @@ module McFS; module Service
   
   # McFSShare is a namespace created from a collection of stores
   class McFSShare < Namespace
+    
+    # Use 64 kB chunk size until we find a mechanism to decide an optimum
+    # value.
+    CHUNK_SIZE = (64 * 1024)
+    
     def initialize(nsid, stores)
       super nsid
       @stores = []
@@ -106,12 +111,77 @@ module McFS; module Service
     def readfile(path)
       Log.info "McFSShare readfile #{path}"
       
+      results = {}
+      
+      stores_perform_selective(:readfile, stores_fileparts(path)).each do |store, parts|
+        parts.each do |path, result|
+          index = File.extname(path)[1..-1].to_i
+          results[index] = result
+        end
+      end
+      
+      # Join together all the results, sorted by their index number
+      results.sort.collect { |index, result| result }.join
     end
     
     def writefile(path, data)
       Log.info "McFSShare writefile to #{path}"
       
-    end
+      fileparts = []
+      
+      # Break data into chunks until the last chunk becomes an empty
+      # chunk (for now we write empty chunk too).
+      begin
+        fileparts << data.slice!(0, CHUNK_SIZE)
+      end until fileparts[-1].size == 0
+      
+      # { store => { path => data } }
+      # List contents to be written/deleted. For paths that need
+      # deletion, set data to nil.
+      contents = {}
+      
+      # By default existing parts are to be deleted
+      stores_fileparts(path).each do |store, files|
+        contents[store] = files.each_with_object({}) do |file, hsh|
+          hsh[file] = nil
+        end
+      end
+      
+      # Now add new data to contents
+      fileparts.each_with_index do |data, index|
+        store = next_store
+        filename = "#{path}.#{index}"
+        
+        contents[store] ||= {}
+        contents[store][filename] = data
+      end
+      
+      # The generic actions to be performed are now going to be created
+      # based on contents created above.
+      actions = {}
+      
+      contents.each do |store, fileparts|
+        actions[store] = []
+        
+        fileparts.each do |filepath, data|
+          store_filepath = store_path(filepath)
+          
+          actions[store] << if data
+            # Write/overwrite file
+            [ :writefile, [store_filepath, data] ]
+          else
+            # Delete the file
+            [ :delete, [store_filepath] ]
+          end
+          
+        end # fileparts
+      end # contents
+      
+      # pp actions
+      #
+      stores_perform_generic(actions)
+      
+    end # writefile
     
     def delete(path)
       Log.info "McFSShare delete #{path}"
@@ -133,6 +203,17 @@ module McFS; module Service
     
     private
     
+    def next_store
+      if @laststore
+        @laststore += 1
+        @laststore = (@laststore % @stores.size)
+      else
+        @laststore = 0
+      end
+      
+      @stores[@laststore]
+    end
+    
     def store_path(path)
       if path == '/'
         @sharedir
@@ -141,37 +222,78 @@ module McFS; module Service
       end
     end
     
+    # Perform different set of operation of different stores with
+    # separate list of arguments.
+    #
+    # { store => [[op,[arg,...]],...],... }
+    #
+    # returns { store => [[op,[arg,...],result],...],... }
+    def stores_perform_generic(actions)
+      Log.info "McFSShare store perform generic"
+      
+      results = {}
+      
+      actions.each do |store, ops|
+        results[store] = []
+        
+        ops.each do |op, args|
+          
+          future = Celluloid::Future.new do
+            store.send(op, *args)
+          end # Future
+          
+          results[store] << [op, args, future]
+        end
+      end
+      
+      results.each do |store, ops|
+        ops.each do |op_info|
+          op_info[2] = op_info[2].value
+        end
+      end
+      
+      results
+      
+    end # stores_perform_generic
+
     # Perform a given operation on a path inside a store with optional
     # additional arguments
     def stores_perform(op, path, *args)
       Log.info "McFSShare store perform #{op} on #{path}"
       
-      futures = {}
-      results = {}
-      
       storepath = store_path(path)
+      
+      actions = {}
       
       # Initiate operations as futures
       @stores.each do |store|
-        futures[store] = Celluloid::Future.new { store.send(op, storepath, *args) }
+        actions[store] = []
+        actions[store] << [ op, [storepath] + [*args] ]
       end
       
-      # Collect the results
-      futures.each do |store, future|
-        results[store] = future.value
+      results = {}
+      
+      stores_perform_generic(actions).each do |store, opresults|
+        _, _, result = opresults.pop
+        results[store] = result
       end
       
       results
       
     end # stores_perform
-    
+        
     # Perform a given operation on a set of paths for a set of stores
     # with optional additional arguments
     # pathlist is a map from store => list of paths
     # { store => [path,...],... }
+    #   or
+    # { store => {path => [arg1,...],...} }
     # 
     # returns { store => { path => result,... },... }
-    def stores_perform_selective(op, pathlist, *args)
+    #
+    # TODO: Implement this using stores_perform_generic()
+    #
+    def stores_perform_selective(op, pathlist, *args_default)
       Log.info "McFSShare store perform selective #{op}"
       
       futures = {}
@@ -180,9 +302,18 @@ module McFS; module Service
       pathlist.each do |store, paths|
         futures[store] = {}
         
-        paths.each do |path|
+        # paths can either be a simple array of path strings or a hash
+        # map from path name to args.
+        #
+        # Note that 'args' will become nil when paths is just an array.
+        paths.each do |path, args_specific|
           storepath = store_path(path)
-          futures[store][path] = Celluloid::Future.new { store.send(op, storepath, *args) }
+          args = args_specific ? args_specific : args_default
+          
+          futures[store][path] = Celluloid::Future.new do
+            store.send(op, storepath, *args)
+          end # Future
+          
         end
       end
       
@@ -198,7 +329,7 @@ module McFS; module Service
       results
       
     end # stores_perform_selective
-
+    
     # List all suffixed files present in a path in all stores
     def stores_fileparts(filepath)
       Log.info "McFSShare fileparts #{filepath}"

@@ -27,8 +27,8 @@ module McFS; module Service; module Stores
       # Get metadata of the directory from Dropbox server
       metadata = @client.metadata(dirpath)
       
-      pp metadata
-      
+      # pp metadata
+      #
       dir_meta = create_metadata(metadata)
       
       unless dir_meta.is_a? DirMeta
@@ -48,10 +48,7 @@ module McFS; module Service; module Stores
       
       data, metadata = @client.get_file_and_metadata(path)
       
-      {
-        'data' => data,
-        'size' => metadata['bytes']
-      }
+      data
     end
     
     def writefile(path, data)
@@ -59,8 +56,8 @@ module McFS; module Service; module Stores
       
       metadata = @client.put_file(path, data, true)
 
-      pp metadata
-        
+      # pp metadata
+      #
       update_metadata(path, create_metadata(metadata))
     end
     
@@ -73,8 +70,8 @@ module McFS; module Service; module Stores
 
       metadata = @client.file_delete(path)
       
-      pp metadata
-      
+      # pp metadata
+      #
       update_metadata(path, create_metadata(metadata))
     end
     
@@ -87,8 +84,8 @@ module McFS; module Service; module Stores
 
       metadata = @client.file_create_folder(path)
     
-      pp metadata
-        
+      # pp metadata
+      #
       update_metadata(path, create_metadata(metadata))
     end # mkdir
     

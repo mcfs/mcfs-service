@@ -76,7 +76,8 @@ module McFS; module Service
     def update_metadata(path, meta)
       Log.info "RemoteStore updating metadata for #{path}"
       
-      pp meta
+      # pp meta
+      #
       
       # NOTE: meta is expected to be never of the root directory
       

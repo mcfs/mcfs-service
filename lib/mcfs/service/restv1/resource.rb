@@ -48,9 +48,9 @@ module McFS; module Service
       if response_data.is_a? Integer
         response.code = response_data
       else
-        pp response_data
+        # pp response_data
+        puts response_data.to_yaml
         response.body = response_data.to_yaml
-        pp response_data.to_yaml
       end
     end # process_post
     
