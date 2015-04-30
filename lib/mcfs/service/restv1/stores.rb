@@ -24,6 +24,7 @@ module McFS; module Service
       token    = request_data['token']
       
       if McFS::Service::Store.instantiate(service, nsid, token)
+        McFS::Service::Config.add(request.disp_path, request_data)
         "success"
       else
         "failure"

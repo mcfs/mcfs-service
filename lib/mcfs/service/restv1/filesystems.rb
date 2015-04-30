@@ -24,6 +24,7 @@ module McFS; module Service
       nsid     = request_data['uuid']
       
       if McFS::Service::FileSystem.instantiate(nsid)
+        McFS::Service::Config.add(request.disp_path, request_data)
         "success"
       else
         "failure"
@@ -44,6 +45,7 @@ module McFS; module Service
         # Mount the namespace with its name as mount point
         # FIXME: check for success/failure
         if fs_obj.mount(ns_obj, ns_nsid)
+          McFS::Service::Config.add(request.disp_path, request_data)
           "success"
         else
           "failure"

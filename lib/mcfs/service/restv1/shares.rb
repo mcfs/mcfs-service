@@ -33,6 +33,8 @@ module McFS; module Service
       # Just create the object and it will added to global namespace list
       McFS::Service::McFSShare.new(nsid, stores)
       
+      McFS::Service::Config.add(request.disp_path, request_data)
+      
       return 'success'
       
     end # add_share
